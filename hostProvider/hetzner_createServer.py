@@ -6,7 +6,7 @@ def GetVolumeByName( volumeName ):
     logging.info('Searching existing volumes...')
     url = 'https://api.hetzner.cloud/v1/volumes'
     params = {'name': volumeName}
-    serverResponseBytes = BytesIO() 
+    serverResponseBytes = BytesIO()
     curl = pycurl.Curl()
     curl.setopt(pycurl.CAINFO, certifi.where())
     curl.setopt(pycurl.HTTPHEADER, ['Authorization: Bearer ' + config['api_key']])
@@ -15,10 +15,11 @@ def GetVolumeByName( volumeName ):
     curl.perform() 
     curl.close()
     
-    serverResponseJson = json.loads(serverResponseBytes.getvalue())
+    body = serverResponseBytes.getvalue()
+    serverResponseJson = json.loads(body.decode('utf-8'))
     logging.debug(serverResponseJson)
                 
-    for volume in serverResponseJson['volumes']:        
+    for volume in serverResponseJson['volumes']:
         volumeData = { 'volume_id': volume['id'],
                        'volume_linux_device': volume['linux_device']
                      }
@@ -46,7 +47,9 @@ def CreateVolume( config ):
     curl.setopt(curl.POSTFIELDS, json.dumps(data))
     curl.perform()
     curl.close()
-    serverResponseJson = json.loads(serverResponseBytes.getvalue())    
+
+    body = serverResponseBytes.getvalue()
+    serverResponseJson = json.loads(body.decode('utf-8'))
     logging.debug(serverResponseJson)
     
     volumeData = { 'volume_id': serverResponseJson['volume']['id'],
@@ -76,7 +79,9 @@ def CreateServer( config, volumeId ):
     curl.setopt(curl.POSTFIELDS, json.dumps(data))
     curl.perform()
     curl.close()
-    serverResponseJson = json.loads(serverResponseBytes.getvalue())
+
+    body = serverResponseBytes.getvalue()    
+    serverResponseJson = json.loads(body.decode('utf-8'))
     logging.debug(serverResponseJson)
     
     serverData = { 'server_id': serverResponseJson['server']['id'],
@@ -87,11 +92,41 @@ def CreateServer( config, volumeId ):
     logging.info(serverData)
     return serverData
 
+def CheckServerStatus( config, serverId ):
+    while True:   
+        logging.info('Checking server status...')
+        url = 'https://api.hetzner.cloud/v1/servers/' + serverId
+        serverResponseBytes = BytesIO() 
+        curl = pycurl.Curl()
+        curl.setopt(pycurl.CAINFO, certifi.where())
+        curl.setopt(pycurl.HTTPHEADER, ['Authorization: Bearer ' + config['api_key'] ])
+        curl.setopt(curl.URL, url)
+        curl.setopt(curl.WRITEDATA, serverResponseBytes)
+
+        curl.setopt(curl.POSTFIELDS, json.dumps(data))
+        curl.perform()
+        curl.close()
+
+        body = serverResponseBytes.getvalue()    
+        serverResponseJson = json.loads(body.decode('utf-8'))
+        logging.debug(serverResponseJson)
+
+        if serverResponseJson['status'] == 'running':
+            logging.info('Server is running...')
+            return true
+
+        if serverResponseJson['status'] != 'initializing' and serverResponseJson['status'] != 'starting':
+            logging.info('Server is starting...')
+            return false
+
 def main( config ):
     volumeData = GetVolumeByName(config['name'])
     if not volumeData:
         volumeData = CreateVolume(config)
     serverData = CreateServer(config, volumeData['volume_id'])
+    if not CheckServerStatus(config, serverData['server_ip']):
+        logging.info('Server is not running. Aborting...')
+        return
     subprocess.call(shlex.split('ansible-playbook -i root@' + serverData['server_ip'] + ', ../playbook.yml --extra-vars "' + json.dumps(volumeData) + '"'))
 
 logging.basicConfig(level=logging.DEBUG)
