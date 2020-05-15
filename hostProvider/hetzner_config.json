@@ -1,0 +1,9 @@
+{
+  "api_key"    : "",
+  "name"       : "MC-Eternal",
+  "location"   : "nbg1",
+  "server_type": "cx11",
+  "image"      : "ubuntu-16.04",
+  "ssh_keys"   : ["HomePc", "HomeUbuntuPc"],
+  "volume_size": 10
+}

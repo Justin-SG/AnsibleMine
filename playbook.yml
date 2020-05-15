@@ -1,5 +1,5 @@
 ---                                                                                                                     
-- hosts: mineservers
+- hosts: "{{ server_ip | default('mineservers') }}"
   vars_files:
   - ./vars.yml
   gather_facts: no
@@ -109,6 +109,10 @@
       dest: /home/mine/data/
       owner: mine
 
+  - name: Find mounted device path
+      command: findmnt -rno TARGET "{{volume_linux_device}}"
+      register: mount_path
+
   - name: Create world folder if not exists
     file:
       path: "{{ world_location }}"
@@ -168,5 +172,5 @@
       ports:
        - "{{ server_port }}:{{ server_port }}"
       volumes:
-       - "/home/mine/data:/data"
+       - "{{mount_path}}:/data"
     become_user: mine
