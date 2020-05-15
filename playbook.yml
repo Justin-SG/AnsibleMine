@@ -1,5 +1,5 @@
 ---                                                                                                                     
-- hosts: "{{ server_ip | default('mineservers') }}"
+- hosts: all
   vars_files:
   - ./vars.yml
   gather_facts: no
@@ -81,6 +81,10 @@
       name: docker
       state: present
 
+  - name: Find mounted device path
+    command: "findmnt -rno TARGET {{ volume_linux_device }}"
+    register: mount_path
+
   - name: Add new user 'mine', who can access docker
     user:
       uid: "{{ user_uid }}"
@@ -92,9 +96,10 @@
 
   - name: Create data directory
     file:
-      path: /home/mine/data
+      path: "{{ mount_path.stdout }}/data"
       state: directory
       owner: mine
+      group: mine
 
   - name: Create anisble tmp directory
     file:
@@ -108,10 +113,6 @@
       src: ./data/
       dest: /home/mine/data/
       owner: mine
-
-  - name: Find mounted device path
-      command: findmnt -rno TARGET "{{volume_linux_device}}"
-      register: mount_path
 
   - name: Create world folder if not exists
     file:
@@ -172,5 +173,5 @@
       ports:
        - "{{ server_port }}:{{ server_port }}"
       volumes:
-       - "{{mount_path}}:/data"
+       - "{{ mount_path.stdout }}/data:/data"
     become_user: mine

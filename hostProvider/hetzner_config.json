@@ -1,6 +1,6 @@
 {
   "api_key"    : "",
-  "name"       : "MC-Eternal",
+  "name"       : "Minecraft-Server",
   "location"   : "nbg1",
   "server_type": "cx11",
   "image"      : "ubuntu-16.04",

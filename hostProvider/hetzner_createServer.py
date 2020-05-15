@@ -92,7 +92,7 @@ def main( config ):
     if not volumeData:
         volumeData = CreateVolume(config)
     serverData = CreateServer(config, volumeData['volume_id'])
-    subprocess.call(shlex.split('../ansible-playbook playbook.yml -i ../inventory --extra-vars "' + json.dumps({**serverData, **volumeData}) + '"'))
+    subprocess.call(shlex.split('ansible-playbook -i root@' + serverData['server_ip'] + ', ../playbook.yml --extra-vars "' + json.dumps(volumeData) + '"'))
 
 logging.basicConfig(level=logging.DEBUG)
 with open('hetzner_config.json') as config_file:
